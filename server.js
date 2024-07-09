@@ -25,19 +25,19 @@ app.use(
   sassMiddleware({
     src: join(import.meta.dirname, "sass"),
     dest: join(import.meta.dirname, "public"),
-    debug: true,
+    debug: false,
     outputStyle: "compressed",
   })
 );
 app.use(Express.static("public"));
 
 app.get("/history", (req, res) => {
-  const messages = req.session.messages || defaultMessages;
+  const messages = req.session.messages || [...defaultMessages];
   res.json(messages);
 });
 
 app.post("/messages", async (req, res) => {
-  const messages = req.session.messages || defaultMessages;
+  const messages = req.session.messages || [...defaultMessages];
   const bot = createBot(messages);
 
   const { query } = req.body;
@@ -45,18 +45,21 @@ app.post("/messages", async (req, res) => {
   messages.push(newMessage);
   const result = await bot.sendMessageStream(query);
   let text = "";
+  res.set("Content-Type", "text/plain");
   for await (const chunk of result.stream) {
     text += chunk.text();
-    console.log(text);
+    res.write(chunk.text());
   }
   messages.push({ role: "model", parts: [{ text }] });
   req.session.messages = messages;
-  res.send(text);
+  res.end();
 });
 
 app.get("/clear-history", (req, res) => {
-  req.session.destroy();
-  res.redirect("/");
+  req.session.regenerate(() => {
+    req.session.messages = [...defaultMessages];
+    res.redirect("/");
+  });
 });
 
 app.listen(port, () => {

@@ -1,3 +1,9 @@
+const SCROLL_OPTIONS = {
+  block: "end",
+  inline: "nearest",
+  behavior: "smooth",
+};
+
 function buildMessage(message) {
   const li = document.createElement("li");
   li.classList.add(message.role);
@@ -16,32 +22,31 @@ function appendMessage(message) {
   const messages = document.querySelector(".chat");
   const newMessage = buildMessage(message);
   messages.appendChild(newMessage);
-  newMessage.scrollIntoView({
-    block: "end",
-    inline: "nearest",
-    behavior: "smooth",
-  });
+  newMessage.scrollIntoView(SCROLL_OPTIONS);
   return newMessage;
 }
 
-function sendMessage(event) {
+async function sendMessage(event) {
   event.preventDefault();
   const form = event.target;
   const input = form.querySelector("#query");
   const body = { query: input.value };
   appendMessage({ role: "user", parts: [{ text: input.value }] });
   input.value = "";
-  const response = fetch("/messages", {
+  const response = await fetch("/messages", {
     method: form.getAttribute("method"),
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
-  })
-    .then((response) => response.text())
-    .then((text) => {
-      appendMessage({ role: "model", parts: [{ text }] });
-    });
+  });
+  const li = appendMessage({ role: "model", parts: [{ text: "" }] });
+  const article = li.querySelector("article");
+  const decoder = new TextDecoder();
+  for await (const chunk of response.body) {
+    article.textContent += decoder.decode(chunk);
+  }
+  li.scrollIntoView(SCROLL_OPTIONS);
 }
 
 document.addEventListener("DOMContentLoaded", () => {
