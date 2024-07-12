@@ -42,8 +42,14 @@ async function sendMessage(event) {
     },
     body: JSON.stringify(body),
   });
-  const text = await response.text();
-  const li = appendMessage({ role: "model", parts: [{ text }] });
+  const li = appendMessage({ role: "model", parts: [{ text: "" }] });
+  const article = li.querySelector("article");
+  const decoder = new TextDecoder();
+  let text = "";
+  for await (const chunk of response.body) {
+    text += decoder.decode(chunk);
+    article.innerHTML = md.render(text);
+  }
   li.scrollIntoView(SCROLL_OPTIONS);
 }
 

@@ -5435,8 +5435,14 @@
       },
       body: JSON.stringify(body)
     });
-    const text2 = await response.text();
-    const li = appendMessage({ role: "model", parts: [{ text: text2 }] });
+    const li = appendMessage({ role: "model", parts: [{ text: "" }] });
+    const article = li.querySelector("article");
+    const decoder = new TextDecoder();
+    let text2 = "";
+    for await (const chunk of response.body) {
+      text2 += decoder.decode(chunk);
+      article.innerHTML = md.render(text2);
+    }
     li.scrollIntoView(SCROLL_OPTIONS);
   }
   document.addEventListener("DOMContentLoaded", () => {

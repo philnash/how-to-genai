@@ -65,14 +65,17 @@ app.post("/messages", async (req, res) => {
     
     Question: ${query}`;
   }
-  const result = await bot.sendMessage(prompt);
-
-  const response = await result.response;
-  const text = response.text();
+  const result = await bot.sendMessageStream(prompt);
+  let text = "";
+  res.set("Content-Type", "text/plain");
+  for await (const chunk of result.stream) {
+    text += chunk.text();
+    res.write(chunk.text());
+  }
   messages.push({ role: "user", parts: [{ text: query }] });
   messages.push({ role: "model", parts: [{ text }] });
   req.session.messages = messages;
-  res.send(text);
+  res.end();
 });
 
 app.get("/clear-history", (req, res) => {
