@@ -5,8 +5,9 @@ import session from "express-session";
 import sassMiddleware from "express-dart-sass";
 
 import { sessionSecret, port } from "./lib/config.js";
-import { defaultMessages } from "./lib/consts.js";
-import { createBot } from "./lib/bot.js";
+import { SYSTEM_MESSAGE } from "./lib/consts.js";
+import { createBot, model } from "./lib/bot.js";
+import { collection } from "./lib/db.js";
 
 const app = Express();
 
@@ -32,32 +33,22 @@ app.use(
 app.use(Express.static("public"));
 
 app.get("/history", (req, res) => {
-  const messages = req.session.messages || [...defaultMessages];
+  const messages = req.session.messages || [];
   res.json(messages);
 });
 
 app.post("/messages", async (req, res) => {
-  const messages = req.session.messages || [...defaultMessages];
-  const bot = createBot(messages);
-
   const { query } = req.body;
-  const newMessage = { role: "user", parts: [{ text: query }] };
-  messages.push(newMessage);
-  const result = await bot.sendMessageStream(query);
-  let text = "";
-  res.set("Content-Type", "text/plain");
-  for await (const chunk of result.stream) {
-    text += chunk.text();
-    res.write(chunk.text());
-  }
-  messages.push({ role: "model", parts: [{ text }] });
-  req.session.messages = messages;
-  res.end();
+  model.countTokens(query).then((result) => console.log(result));
+  const result = await model.generateContent(query);
+  const response = await result.response;
+  const text = response.text();
+  res.send(text);
 });
 
 app.get("/clear-history", (req, res) => {
   req.session.regenerate(() => {
-    req.session.messages = [...defaultMessages];
+    req.session.messages = [];
     res.redirect("/");
   });
 });

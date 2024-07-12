@@ -40,16 +40,16 @@ ol.chat {
   position: relative;
   overscroll-behavior-y: contain;
 }
-ol.chat li {
+ol.chat > li {
   list-style-type: none;
 }
-ol.chat li.user {
+ol.chat > li.user {
   margin-right: 2rem;
 }
-ol.chat li.user article {
+ol.chat > li.user article {
   background-color: #3f1e6d;
 }
 
-ol.chat li.model {
+ol.chat > li.model {
   margin-left: 2rem;
 }

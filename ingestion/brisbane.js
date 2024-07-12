@@ -1,6 +1,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import { collection } from "../lib/db.js";
+
 const path = join(import.meta.dirname, "..", "data", "brisbane.json");
 
 const fileContents = await readFile(path, { encoding: "utf-8" });
@@ -20,6 +22,10 @@ const newData = data.sessions
       startsAt: session.startsAt,
     };
   });
+
+collection.insertMany(
+  newData.map((doc) => ({ $vectorize: doc.talk, startsAt: doc.startsAt }))
+);
 
 const newPath = join(
   import.meta.dirname,
