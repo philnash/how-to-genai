@@ -38,11 +38,17 @@ app.get("/history", (req, res) => {
 });
 
 app.post("/messages", async (req, res) => {
+  const messages = req.session.messages || [];
+  const bot = createBot("", messages);
   const { query } = req.body;
   model.countTokens(query).then((result) => console.log(result));
-  const result = await model.generateContent(query);
+  const result = await bot.sendMessage(query);
+
   const response = await result.response;
   const text = response.text();
+  messages.push({ role: "user", parts: [{ text: query }] });
+  messages.push({ role: "model", parts: [{ text }] });
+  req.session.messages = messages;
   res.send(text);
 });
 
