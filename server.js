@@ -39,10 +39,33 @@ app.get("/history", (req, res) => {
 
 app.post("/messages", async (req, res) => {
   const messages = req.session.messages || [];
-  const bot = createBot("", messages);
+  const bot = createBot(SYSTEM_MESSAGE, messages);
   const { query } = req.body;
   model.countTokens(query).then((result) => console.log(result));
-  const result = await bot.sendMessage(query);
+  const context = await collection
+    .find(
+      {},
+      {
+        sort: { $vectorize: query },
+        limit: 5,
+        projection: { $vectorize: 1 },
+        includeSimilarity: true,
+      }
+    )
+    .toArray();
+
+  const mostSimilarContext = context.filter((doc) => doc.$similarity > 0.7);
+  let prompt;
+  if (mostSimilarContext.length > 0) {
+    prompt = `${mostSimilarContext.map((doc) => doc.$vectorize).join("\n")}
+  ---
+  Given the context above, answer the following questions: ${query}`;
+  } else {
+    prompt = `Try to answer the following question. If you can't answer it from the conversation so far or your existing knowledge you can say so.
+    
+    Question: ${query}`;
+  }
+  const result = await bot.sendMessage(prompt);
 
   const response = await result.response;
   const text = response.text();
